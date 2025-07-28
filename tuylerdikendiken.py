@@ -10,6 +10,12 @@ import psutil
 CONFIG_FILE = "config.json"
 dpi_process = None
 
+# Windows özel bayrak (arka planda başlatmak için)
+if os.name == 'nt':
+    CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+else:
+    CREATE_NO_WINDOW = 0
+
 def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
@@ -46,7 +52,12 @@ def run_goodbyedpi(args):
 
     try:
         full_args = [exe_path] + args.split()
-        dpi_process = subprocess.Popen(full_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        dpi_process = subprocess.Popen(
+            full_args,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=CREATE_NO_WINDOW  # <- pencere açılmasını engeller
+        )
         status_label.config(text="GoodbyeDPI started.")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to start: {str(e)}")
@@ -63,13 +74,13 @@ def stop_goodbyedpi():
     else:
         status_label.config(text="GoodbyeDPI is not running.")
 
-# GUI Başlat
+# GUI
 root = tk.Tk()
 root.title("DPIutil")
 root.geometry("320x240")
 root.resizable(False, False)
 
-# Arka plan görselini PyInstaller destekli yoldan yükle
+# Arka plan dosyasını PyInstaller ile uyumlu şekilde yükle
 if getattr(sys, 'frozen', False):
     base_path = sys._MEIPASS
 else:
@@ -107,11 +118,11 @@ tk.Button(root, text="Handbrake", command=stop_goodbyedpi, **btn_style).place(x=
 status_label = tk.Label(root, text="Welcome to DPIutil", bg="black", fg="lime", font=("Segoe UI", 10))
 status_label.place(x=90, y=180, width=140, height=20)
 
-# Download/Upload hız label
+# Download/Upload hız göstergesi
 speed_label = tk.Label(root, text="", bg="black", fg="lime", font=("Consolas", 9))
 speed_label.place(x=90, y=205, width=140)
 
-# Ağ hızı takibi
+# Ağ hızı ölçümü
 last_sent = psutil.net_io_counters().bytes_sent
 last_recv = psutil.net_io_counters().bytes_recv
 
